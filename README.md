@@ -1,16 +1,25 @@
-# myapp
+# VegMe - Vegan & Vegetarian Meal Planner
+A Flutter mobile application for planning vegan and vegetarian meals with smart grocery list generation.
 
-A new Flutter project.
+## Features
 
-## Getting Started
+🌱 Personalized meal planning - Choose between vegan-only, vegetarian, or both diet types
+📅 Weekly meal scheduler - Plan breakfast, lunch, and dinner for each day of the week
+🔍 Recipe search - Browse hundreds of plant-based recipes from TheMealDB API
+🛒 Smart shopping list - Automatically generate grocery lists based on selected recipes
+👥 Portion adjustment - Scale ingredients based on the number of people you're cooking for
+💾 Local storage - Save your meal plans with SQLite database
 
-This project is a starting point for a Flutter application.
+## Tech Stack
 
-A few resources to get you started if this is your first Flutter project:
+Framework: Flutter (Dart)
+APIs: TheMealDB, API Ninjas Nutrition
+State Management: Provider
+Local Database: SQLite
+Architecture: Clean Architecture with MVVM pattern
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### Getting Started
+bashflutter pub get
+flutter run
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### University Project Developed as final project for Mobile Systems Programming course at University of Bologna.
