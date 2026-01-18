@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../core/theme/app_theme.dart';
-import 'search_recipes_screen.dart';
+import 'package:vegme/core/theme/app_theme.dart';
+import 'package:vegme/data/local/storage_manager.dart';
+import 'package:vegme/screens/search_recipes_screen.dart';
+import 'package:vegme/screens/weekly_calendar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String dietType;
@@ -17,15 +19,49 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int selectedDay = 0; // 0=Lun, 1=Mar, ...
+  int selectedDay = 0;
   final List<String> days = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
   
-  // TODO: Sostituire con dati veri dal database
-  Map<String, List<String>> meals = {
+  Map<String, List<Map<String, dynamic>>> meals = {
     'colazione': [],
     'pranzo': [],
     'cena': [],
   };
+  
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMeals();
+  }
+
+  Future<void> _loadMeals() async {
+    setState(() => _isLoading = true);
+    
+    final loadedMeals = await StorageManager.instance.getMealsForDay(selectedDay);
+    
+    setState(() {
+      meals = loadedMeals;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _saveMeal(String mealType, Map<String, dynamic> recipe) async {
+    await StorageManager.instance.saveMeal(selectedDay, mealType, recipe);
+    await _loadMeals();
+  }
+
+  Future<void> _deleteMeal(String mealType, int index) async {
+    // Su web usiamo l'indice, su mobile l'ID
+    final meal = meals[mealType]![index];
+    await StorageManager.instance.deleteMeal(
+      selectedDay, 
+      mealType, 
+      meal['id'] ?? index
+    );
+    await _loadMeals();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +71,44 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Menu Settimanale'),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings),
+            icon: Icon(Icons.calendar_month),
             onPressed: () {
-              // TODO: Aprire impostazioni
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => WeeklyCalendarScreen(
+                    servings: widget.servings,
+                  ),
+                ),
+              );
+            },
+          ),
+
+          IconButton(
+            icon: Icon(Icons.delete_outline),
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Cancella tutto'),
+                  content: Text('Vuoi cancellare tutti i pasti pianificati?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text('Annulla'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text('Cancella', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+              
+              if (confirm == true) {
+                await StorageManager.instance.clearAll();
+                _loadMeals();
+              }
             },
           ),
         ],
@@ -57,6 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 return GestureDetector(
                   onTap: () {
                     setState(() => selectedDay = index);
+                    _loadMeals();
                   },
                   child: Container(
                     width: 60,
@@ -94,31 +166,29 @@ class _HomeScreenState extends State<HomeScreen> {
           
           // Lista pasti
           Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildMealSection('Colazione', '🌅', 'colazione'),
-                  SizedBox(height: 20),
-                  _buildMealSection('Pranzo', '🍽️', 'pranzo'),
-                  SizedBox(height: 20),
-                  _buildMealSection('Cena', '🌙', 'cena'),
-                  SizedBox(height: 80), // Spazio per FAB
-                ],
-              ),
-            ),
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen))
+                : SingleChildScrollView(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildMealSection('Colazione', '🌅', 'colazione'),
+                        SizedBox(height: 20),
+                        _buildMealSection('Pranzo', '🍽️', 'pranzo'),
+                        SizedBox(height: 20),
+                        _buildMealSection('Cena', '🌙', 'cena'),
+                        SizedBox(height: 80),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
       
-      // Bottone Lista Spesa
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // TODO: Aprire lista spesa
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lista spesa in arrivo!')),
-          );
+          _showShoppingList();
         },
         backgroundColor: AppTheme.accentOrange,
         icon: Icon(Icons.shopping_cart),
@@ -128,7 +198,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
   
   Widget _buildMealSection(String title, String emoji, String mealType) {
-    List<String> mealList = meals[mealType] ?? [];
+    List<Map<String, dynamic>> mealList = meals[mealType] ?? [];
     
     return Container(
       padding: EdgeInsets.all(16),
@@ -163,13 +233,13 @@ class _HomeScreenState extends State<HomeScreen> {
           
           SizedBox(height: 12),
           
-          // Lista ricette aggiunte
           if (mealList.isEmpty)
             _buildAddMealButton(mealType)
           else
-            ...mealList.map((meal) => _buildMealItem(meal, mealType)),
+            ...mealList.asMap().entries.map((entry) => 
+              _buildMealItem(entry.value, mealType, entry.key)
+            ),
           
-          // Bottone aggiungi altro
           if (mealList.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(top: 8),
@@ -183,7 +253,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAddMealButton(String mealType) {
     return InkWell(
       onTap: () async {
-        // Naviga alla ricerca e aspetta il risultato
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
@@ -194,14 +263,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
         
-        // Se l'utente ha selezionato una ricetta
         if (result != null) {
-          setState(() {
-            if (meals[mealType] == null) {
-              meals[mealType] = [];
-            }
-            meals[mealType]!.add(result['name']);
-          });
+          await _saveMeal(mealType, result);
         }
       },
       child: Container(
@@ -228,7 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
   
-  Widget _buildMealItem(String mealName, String mealType) {
+  Widget _buildMealItem(Map<String, dynamic> meal, String mealType, int index) {
     return Container(
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.all(12),
@@ -238,12 +301,34 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
+          // Immagine ricetta
+          if (meal['image'] != null && meal['image'].toString().isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                meal['image'],
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 50,
+                    height: 50,
+                    color: Colors.grey[300],
+                    child: Icon(Icons.restaurant, color: Colors.grey),
+                  );
+                },
+              ),
+            ),
+          
+          SizedBox(width: 12),
+          
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  mealName,
+                  meal['name'] ?? 'Ricetta',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -251,25 +336,43 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 SizedBox(height: 4),
-                Text(
-                  '${widget.servings} porzioni',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.textLight,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      '${widget.servings} porzioni',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textLight,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      meal['isVegan'] == true ? '🌱 Vegano' : '🥬 Vegetariano',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          
           IconButton(
             icon: Icon(Icons.close, color: Colors.red[400]),
-            onPressed: () {
-              setState(() {
-                meals[mealType]?.remove(mealName);
-              });
+            onPressed: () async {
+              await _deleteMeal(mealType, index);
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void _showShoppingList() {
+    // TODO: Implementare lista spesa
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Lista spesa in arrivo! 🛒'),
+        backgroundColor: AppTheme.primaryGreen,
       ),
     );
   }

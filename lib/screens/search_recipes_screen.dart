@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../data/services/meal_api_service.dart';
+import '../data/services/translation_service.dart'; // <-- Aggiungi import
 
 class SearchRecipesScreen extends StatefulWidget {
-  final String dietType; // vegan, vegetarian, both
-  final String mealType; // colazione, pranzo, cena
+  final String dietType;
+  final String mealType;
   
   const SearchRecipesScreen({
     super.key,
@@ -50,7 +51,16 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
     
     setState(() => _isLoading = true);
     
-    final recipes = await _apiService.searchMeals(query);
+    // ✅ Traduci la query da italiano a inglese per l'API
+    final translatedQuery = TranslationService.translateSearchQuery(query);
+    
+    // Cerca con la query tradotta
+    var recipes = await _apiService.searchMeals(translatedQuery);
+    
+    // Se non trova risultati con la traduzione, prova anche con l'originale
+    if (recipes.isEmpty && translatedQuery != query.toLowerCase()) {
+      recipes = await _apiService.searchMeals(query);
+    }
     
     setState(() {
       _recipes = _filterByDietType(recipes);
@@ -65,9 +75,24 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
     } else if (widget.dietType == 'vegetarian') {
       return recipes.where((meal) => _apiService.isVegetarian(meal)).toList();
     } else {
-      // both
       return recipes.where((meal) => _apiService.isVegetarian(meal)).toList();
     }
+  }
+
+  // ✅ NUOVO: Metodo per tradurre il nome del piatto
+  String _translateMealName(String? name) {
+    if (name == null || name.isEmpty) return 'Ricetta';
+    return TranslationService.translateDishName(name);
+  }
+
+  // ✅ NUOVO: Metodo per tradurre gli ingredienti
+  List<Map<String, String>> _translateIngredients(List<Map<String, dynamic>> ingredients) {
+    return ingredients.map((ing) {
+      return TranslationService.translateFullIngredient(
+        ing['name']?.toString() ?? '',
+        ing['measure']?.toString() ?? '',
+      );
+    }).toList();
   }
 
   @override
@@ -103,7 +128,7 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
               ),
               onSubmitted: _searchRecipes,
               onChanged: (value) {
-                setState(() {}); // Per aggiornare suffixIcon
+                setState(() {});
               },
             ),
           ),
@@ -152,6 +177,9 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
         final recipe = _recipes[index];
         final isVegan = _apiService.isVegan(recipe);
         
+        // ✅ USA TRADUZIONE per il nome
+        final translatedName = _translateMealName(recipe['strMeal']);
+        
         return Card(
           margin: EdgeInsets.only(bottom: 16),
           shape: RoundedRectangleBorder(
@@ -159,7 +187,6 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
           ),
           child: InkWell(
             onTap: () async {
-              // Carica dettagli completi
               final details = await _apiService.getMealDetails(recipe['idMeal']);
               if (details != null) {
                 _showRecipeDetails(details);
@@ -169,7 +196,6 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Immagine
                 ClipRRect(
                   borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                   child: Image.network(
@@ -196,7 +222,7 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              recipe['strMeal'] ?? 'Ricetta',
+                              translatedName, // ✅ NOME TRADOTTO
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -225,7 +251,7 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
                       if (recipe['strCategory'] != null) ...[
                         SizedBox(height: 8),
                         Text(
-                          recipe['strCategory'],
+                          _translateCategory(recipe['strCategory']), // ✅ CATEGORIA TRADOTTA
                           style: TextStyle(
                             fontSize: 14,
                             color: AppTheme.textLight,
@@ -243,9 +269,37 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
     );
   }
 
+  // ✅ NUOVO: Traduzione categorie
+  String _translateCategory(String? category) {
+    if (category == null) return '';
+    
+    const categories = {
+      'Vegetarian': 'Vegetariano',
+      'Vegan': 'Vegano',
+      'Pasta': 'Pasta',
+      'Side': 'Contorno',
+      'Dessert': 'Dolce',
+      'Breakfast': 'Colazione',
+      'Starter': 'Antipasto',
+      'Miscellaneous': 'Varie',
+      'Seafood': 'Pesce',
+      'Beef': 'Manzo',
+      'Chicken': 'Pollo',
+      'Lamb': 'Agnello',
+      'Pork': 'Maiale',
+      'Goat': 'Capra',
+    };
+    
+    return categories[category] ?? category;
+  }
+
   void _showRecipeDetails(Map<String, dynamic> recipe) {
     final ingredients = _apiService.getIngredients(recipe);
     final isVegan = _apiService.isVegan(recipe);
+    
+    // ✅ TRADUZIONE nome e ingredienti
+    final translatedName = _translateMealName(recipe['strMeal']);
+    final translatedIngredients = _translateIngredients(ingredients);
     
     showModalBottomSheet(
       context: context,
@@ -265,7 +319,6 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Handle
                 Center(
                   child: Container(
                     width: 40,
@@ -279,9 +332,9 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
                 
                 SizedBox(height: 20),
                 
-                // Titolo
+                // ✅ TITOLO TRADOTTO
                 Text(
-                  recipe['strMeal'] ?? '',
+                  translatedName,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -291,7 +344,6 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
                 
                 SizedBox(height: 8),
                 
-                // Badge dieta
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -310,7 +362,6 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
                 
                 SizedBox(height: 24),
                 
-                // Ingredienti
                 Text(
                   'Ingredienti',
                   style: TextStyle(
@@ -322,7 +373,8 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
                 
                 SizedBox(height: 12),
                 
-                ...ingredients.map((ing) => Padding(
+                // ✅ INGREDIENTI TRADOTTI
+                ...translatedIngredients.map((ing) => Padding(
                   padding: EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
@@ -340,18 +392,20 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
                 
                 SizedBox(height: 24),
                 
-                // Bottone Aggiungi
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); // Chiudi bottom sheet
+                      Navigator.pop(context);
                       Navigator.pop(context, {
-                        'name': recipe['strMeal'],
+                        'name': translatedName, // ✅ Ritorna nome tradotto
+                        'originalName': recipe['strMeal'], // Mantieni originale se serve
                         'id': recipe['idMeal'],
-                        'ingredients': ingredients,
-                      }); // Ritorna alla home con i dati
+                        'image': recipe['strMealThumb'],
+                        'ingredients': translatedIngredients, // ✅ Ingredienti tradotti
+                        'isVegan': isVegan,
+                      });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryGreen,
