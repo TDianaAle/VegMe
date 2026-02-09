@@ -1,8 +1,10 @@
+import 'shopping_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:vegme/core/theme/app_theme.dart';
 import 'package:vegme/data/local/storage_manager.dart';
 import 'package:vegme/screens/search_recipes_screen.dart';
 import 'package:vegme/screens/weekly_calendar_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   final String dietType;
@@ -66,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: Text('Menu Settimanale'),
         actions: [
@@ -83,7 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-
           IconButton(
             icon: Icon(Icons.delete_outline),
             onPressed: () async {
@@ -188,7 +189,12 @@ class _HomeScreenState extends State<HomeScreen> {
       
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          _showShoppingList();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ShoppingListScreen(),
+            ),
+          );
         },
         backgroundColor: AppTheme.accentOrange,
         icon: Icon(Icons.shopping_cart),
@@ -367,13 +373,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showShoppingList() {
-    // TODO: Implementare lista spesa
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Lista spesa in arrivo! 🛒'),
-        backgroundColor: AppTheme.primaryGreen,
-      ),
-    );
-  }
 }

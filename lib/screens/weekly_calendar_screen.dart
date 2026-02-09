@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../core/theme/app_theme.dart';
 import '../data/local/storage_manager.dart';
 import '../core/services/custom_cursor_service.dart';
+import 'dart:convert';
 
 class WeeklyCalendarScreen extends StatefulWidget {
   final int servings;
@@ -72,7 +73,7 @@ class _WeeklyCalendarScreenState extends State<WeeklyCalendarScreen> {
             ),
     );
 
-    // Avvolgi con cursore personalizzato solo su web
+    // Avvolge con cursore personalizzato solo su web
     if (kIsWeb) {
       return CustomCursorOverlay(
         cursorType: CursorType.carrot,
@@ -248,99 +249,108 @@ class _WeeklyCalendarScreenState extends State<WeeklyCalendarScreen> {
   }
 
   Widget _buildMealTile(Map<String, dynamic> meal, int dayIndex, String mealType, int mealIndex) {
-    final tile = Container(
-      margin: EdgeInsets.only(bottom: 8),
-      padding: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          // Immagine
-          if (meal['image'] != null && meal['image'].toString().isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: Image.network(
-                meal['image'],
+    return InkWell(
+      onTap: () => _showRecipeDetails(meal, dayIndex, mealType, mealIndex),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 8),
+        padding: EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            // Immagine
+            if (meal['image'] != null && meal['image'].toString().isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.network(
+                  meal['image'],
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 40,
+                      height: 40,
+                      color: Colors.grey[200],
+                      child: Icon(Icons.restaurant, size: 20, color: Colors.grey),
+                    );
+                  },
+                ),
+              )
+            else
+              Container(
                 width: 40,
                 height: 40,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 40,
-                    height: 40,
-                    color: Colors.grey[200],
-                    child: Icon(Icons.restaurant, size: 20, color: Colors.grey),
-                  );
-                },
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(Icons.restaurant, size: 20, color: Colors.grey),
               ),
-            )
-          else
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Icon(Icons.restaurant, size: 20, color: Colors.grey),
-            ),
-          
-          SizedBox(width: 12),
-          
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  meal['name'] ?? 'Ricetta',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textDark,
+            
+            SizedBox(width: 12),
+            
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    meal['name'] ?? 'Ricetta',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textDark,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  meal['isVegan'] == true ? '🌱 Vegano' : '🥬 Vegetariano',
-                  style: TextStyle(fontSize: 11, color: AppTheme.textLight),
-                ),
-              ],
+                  Text(
+                    meal['isVegan'] == true ? '🌱 Vegano' : '🥬 Vegetariano',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textLight),
+                  ),
+                ],
+              ),
             ),
-          ),
-          
-          // Icona per indicare che è cliccabile
-          Icon(
-            Icons.chevron_right,
-            color: AppTheme.primaryGreen,
-            size: 20,
-          ),
-        ],
+            
+            Icon(
+              Icons.chevron_right,
+              color: AppTheme.primaryGreen,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
-
-    // Su web usa CustomCursorArea, su mobile GestureDetector normale
-    if (kIsWeb) {
-      return CustomCursorArea(
-        cursorType: CursorType.carrot,
-        onTap: () => _showRecipeDetails(meal, dayIndex, mealType, mealIndex),
-        child: tile,
-      );
-    }
-
-    return GestureDetector(
-      onTap: () => _showRecipeDetails(meal, dayIndex, mealType, mealIndex),
-      child: tile,
-    );
   }
+
+  List<dynamic> _parseIngredients(dynamic ingredientsData) {
+  if (ingredientsData == null) return [];
+  
+  if (ingredientsData is List) {
+    return ingredientsData;
+  }
+  
+  if (ingredientsData is String) {
+    try {
+      final decoded = json.decode(ingredientsData);
+      if (decoded is List) return decoded;
+    } catch (e) {
+      print('Errore parsing ingredienti: $e');
+    }
+  }
+  
+  return [];
+}
 
   // Mostra i dettagli della ricetta con selettore porzioni
   void _showRecipeDetails(Map<String, dynamic> meal, int dayIndex, String mealType, int mealIndex) {
     final isVegan = meal['isVegan'] == true;
-    final ingredients = meal['ingredients'] as List<dynamic>? ?? [];
+    // Gestisce sia lista che stringa JSON
+    final ingredients = _parseIngredients(meal['ingredients']);
     
     showModalBottomSheet(
       context: context,
@@ -356,7 +366,7 @@ class _WeeklyCalendarScreenState extends State<WeeklyCalendarScreen> {
         dayIndex: dayIndex,
         mealType: mealType,
         mealIndex: mealIndex,
-        onRemove: () => _confirmRemoveMeal(dayIndex, mealType, mealIndex, meal['name']),
+        onRemove: () => _confirmRemoveMeal(dayIndex, mealType, meal, meal['name']),
         getDayName: _getDayName,
         getMealTypeName: _getMealTypeName,
       ),
@@ -364,12 +374,12 @@ class _WeeklyCalendarScreenState extends State<WeeklyCalendarScreen> {
   }
 
   // Conferma rimozione pasto
-  void _confirmRemoveMeal(int dayIndex, String mealType, int mealIndex, String? mealName) {
+  void _confirmRemoveMeal(int dayIndex, String mealType, Map<String, dynamic> meal, String? mealName) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Rimuovere ricetta?'),
-        content: Text('Vuoi rimuovere "${mealName ?? 'questa ricetta'}" dal menu di ${_getDayName(dayIndex)}?'),
+        content: Text('Vuoi rimuovere "$mealName" dal menu di ${_getDayName(dayIndex)}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -377,16 +387,15 @@ class _WeeklyCalendarScreenState extends State<WeeklyCalendarScreen> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Chiudi dialog
-              Navigator.pop(context); // Chiudi bottom sheet
+              Navigator.pop(context); // Chiude dialog
+              Navigator.pop(context); // Chiude bottom sheet
               
-              // Rimuovi il pasto
-              await StorageManager.instance.deleteMeal(dayIndex, mealType, mealIndex);
+              // Rimuove usando l'ID vero del database (su mobile) o l'ID della ricetta (su web)
+              final mealId = meal['id'] ?? meal['mealId'];
+              await StorageManager.instance.deleteMeal(dayIndex, mealType, mealId);
               
-              // Ricarica i dati
               await _loadWeekMeals();
               
-              // Mostra conferma
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -483,7 +492,7 @@ class _RecipeDetailsSheetState extends State<_RecipeDetailsSheet> {
       
       double? number;
       
-      // Gestisci frazioni come "1/2"
+      // Gestisce frazioni come "1/2"
       if (numberStr.contains('/')) {
         final parts = numberStr.split('/');
         if (parts.length == 2) {
@@ -494,7 +503,7 @@ class _RecipeDetailsSheetState extends State<_RecipeDetailsSheet> {
           }
         }
       } else {
-        // Gestisci numeri normali (anche con virgola)
+        // Gestisci numeri normali e con virgola
         number = double.tryParse(numberStr.replaceAll(',', '.'));
       }
       
@@ -631,7 +640,7 @@ class _RecipeDetailsSheetState extends State<_RecipeDetailsSheet> {
                 
                 SizedBox(height: 12),
                 
-                // ✅ SELETTORE PORZIONI CON + E -
+                // SELETTORE PORZIONI CON + E -
                 Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -746,11 +755,14 @@ class _RecipeDetailsSheetState extends State<_RecipeDetailsSheet> {
                 
                 SizedBox(height: 16),
                 
-                // ingredients lists with scaled quantities
+                // lista ingredienti scalata
                 ...widget.ingredients.map((ing) {
                   final name = ing['name']?.toString() ?? '';
                   final measure = ing['measure']?.toString() ?? '';
-                  final scaledMeasure = _scaleQuantity(measure);
+                  
+                  // Se measure è vuoto, scala direttamente name (Google Translate)
+                  final textToScale = measure.isEmpty ? name : measure;
+                  final scaledText = _scaleQuantity(textToScale);
                   
                   return Padding(
                     padding: EdgeInsets.only(bottom: 8),
@@ -761,7 +773,9 @@ class _RecipeDetailsSheetState extends State<_RecipeDetailsSheet> {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            scaledMeasure.isNotEmpty ? '$scaledMeasure $name' : name,
+                            measure.isEmpty 
+                                ? scaledText  // Google Translate: tutto in name
+                                : '$scaledText $name',  // Old format: measure + name
                             style: TextStyle(fontSize: 16),
                           ),
                         ),
@@ -770,7 +784,7 @@ class _RecipeDetailsSheetState extends State<_RecipeDetailsSheet> {
                   );
                 }),
               ] else ...[
-                // if no saved ingredients
+                // se non ci sono ingredienti, mostra un messaggio (es. per ricette con dettagli mancanti)
                 Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(

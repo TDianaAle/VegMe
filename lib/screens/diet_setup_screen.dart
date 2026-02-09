@@ -10,157 +10,162 @@ class DietSetupScreen extends StatefulWidget {
 }
 
 class _DietSetupScreenState extends State<DietSetupScreen> {
-  String selectedDiet = 'vegan'; // vegan, vegetarian, both
+  String selectedDiet = 'vegan';
   int servings = 2;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.primaryGreen),
+          icon: Icon(Icons.arrow_back, color: AppTheme.primaryGreen),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title
-                const Text(
-                  'Che tipo di dieta\nsegui?',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textDark,
-                    height: 1.2,
-                  ),
-                ),
-                
-                const SizedBox(height: 40),
-                
-                // diet options
-                _buildDietOption(
-                  'vegan',
-                  '🌱 Solo Vegana',
-                  'Nessun prodotto animale',
-                ),
-                
-                const SizedBox(height: 16),
-                
-                _buildDietOption(
-                  'vegetarian',
-                  '🥬 Solo Vegetariana',
-                  'Include uova e latticini',
-                ),
-                
-                const SizedBox(height: 16),
-                
-                _buildDietOption(
-                  'both',
-                  '🌿 Entrambe',
-                  'Tutte le ricette disponibili',
-                ),
-                
-                const SizedBox(height: 40),
-                
-                // persons number
-                const Text(
-                  'Per quante persone\ncucini?',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textDark,
-                    height: 1.2,
-                  ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Number selector
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline, size: 40),
-                      color: AppTheme.primaryGreen,
-                      onPressed: () {
-                        if (servings > 1) {
-                          setState(() => servings--);
-                        }
-                      },
-                    ),
-                    
-                    const SizedBox(width: 32),
-                    
+                    // Titolo
                     Text(
-                      '$servings',
-                      style: const TextStyle(
-                        fontSize: 48,
+                      'Che tipo di dieta\nsegui?',
+                      style: TextStyle(
+                        fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textDark,
+                        height: 1.2,
                       ),
                     ),
                     
-                    const SizedBox(width: 32),
+                    SizedBox(height: 40),
                     
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline, size: 40),
-                      color: AppTheme.primaryGreen,
-                      onPressed: () {
-                        if (servings < 10) {
-                          setState(() => servings++);
-                        }
-                      },
+                    // Opzioni dieta
+                    _buildDietOption(
+                      'vegan',
+                      '🌱 Solo Vegana',
+                      'Nessun prodotto animale',
                     ),
-                  ],
-                ),
-                
-                const SizedBox(height: 60),
-                
-                // Continue Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => HomeScreen(
-                            dietType: selectedDiet,
-                            servings: servings,
+                    
+                    SizedBox(height: 16),
+                    
+                    _buildDietOption(
+                      'vegetarian',
+                      '🥬 Solo Vegetariana',
+                      'Include uova e latticini',
+                    ),
+                    
+                    SizedBox(height: 16),
+                    
+                    _buildDietOption(
+                      'both',
+                      '🌿 Entrambe',
+                      'Tutte le ricette disponibili',
+                    ),
+                    
+                    SizedBox(height: 40),
+                    
+                    // Numero persone
+                    Text(
+                      'Per quante persone\ncucini?',
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textDark,
+                        height: 1.0,
+                      ),
+                    ),
+                    
+                    SizedBox(height: 24),
+                    
+                    // Selettore numero
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.remove_circle_outline, size: 40),
+                          color: AppTheme.primaryGreen,
+                          onPressed: () {
+                            if (servings > 1) {
+                              setState(() => servings--);
+                            }
+                          },
+                        ),
+                        
+                        SizedBox(width: 32),
+                        
+                        Text(
+                          '$servings',
+                          style: TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textDark,
                           ),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryGreen,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                        
+                        SizedBox(width: 32),
+                        
+                        IconButton(
+                          icon: Icon(Icons.add_circle_outline, size: 40),
+                          color: AppTheme.primaryGreen,
+                          onPressed: () {
+                            if (servings < 10) {
+                              setState(() => servings++);
+                            }
+                          },
+                        ),
+                      ],
                     ),
-                    child: const Text(
-                      'Inizia',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                    
+                    SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Bottone fisso in basso
+            Padding(
+              padding: EdgeInsets.all(24),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HomeScreen(
+                          dietType: selectedDiet,
+                          servings: servings,
+                        ),
                       ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryGreen,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Inizia',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-                
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -174,7 +179,7 @@ class _DietSetupScreenState extends State<DietSetupScreen> {
         setState(() => selectedDiet = value);
       },
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.lightGreen : Colors.grey[100],
           border: Border.all(
@@ -191,16 +196,16 @@ class _DietSetupScreenState extends State<DietSetupScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: AppTheme.textDark,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       color: AppTheme.textLight,
                     ),
@@ -209,7 +214,7 @@ class _DietSetupScreenState extends State<DietSetupScreen> {
               ),
             ),
             if (isSelected)
-              const Icon(
+              Icon(
                 Icons.check_circle,
                 color: AppTheme.primaryGreen,
                 size: 28,

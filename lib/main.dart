@@ -20,21 +20,17 @@ class VegMeApp extends StatelessWidget {
   }
 }
 
-// Schermata Onboarding stile Mealime
+// Schermata Onboarding 
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: TextButton(
-          onPressed: () {},
-          child: const Text('Back', style: TextStyle(color: AppTheme.primaryGreen)),
-        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -91,30 +87,12 @@ class OnboardingScreen extends StatelessWidget {
                         shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        shape: BoxShape.circle,
-                      ),
-                    ),
                   ],
                 ),
                 
                 const SizedBox(height: 32),
                 
-                // Bottone Continue
+                // Bottone Continua
                 SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -134,7 +112,7 @@ class OnboardingScreen extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      'Continue',
+                      'Continua',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,

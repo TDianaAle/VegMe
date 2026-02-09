@@ -2,51 +2,48 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class MealApiService {
-  static const String baseUrl = 'https://www.themealdb.com/api/json/v1/1';
+  static const String baseUrl = 'https://italianrecipeapi.onrender.com/api';
   
-  // not vegan ingredients to filter 
-  static const List<String> nonVeganIngredients = [
-    'chicken', 'beef', 'pork', 'fish', 'meat', 
-    'salmon', 'tuna', 'turkey', 'lamb', 'bacon',
-    'prawn', 'shrimp', 'egg', 'milk', 'cheese', 
-    'butter', 'cream', 'yogurt', 'honey',
-  ];
-  
-  // search recipes by name
-  Future<List<Map<String, dynamic>>> searchMeals(String query) async {
+  // Cerca ricette vegetariane
+  Future<List<Map<String, dynamic>>> getVegetarianMeals() async {
+    print(' Chiamando API: $baseUrl/recipes/preview?type=vegetarian');
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/search.php?s=$query'),
+        Uri.parse('$baseUrl/recipes/preview?type=vegetarian'),
       );
+      
+      print(' Status code: ${response.statusCode}');
+      print(' Body (primi 200 char): ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}');
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['meals'] != null) {
-          List<Map<String, dynamic>> meals = 
-              List<Map<String, dynamic>>.from(data['meals']);
-          return meals;
+        print(' JSON decodificato: success=${data['success']}, recipes count=${data['recipes']?.length}');
+        if (data['success'] == true && data['recipes'] != null) {
+          return List<Map<String, dynamic>>.from(data['recipes']);
         }
       }
+      print(' Errore API: ${response.statusCode}');
       return [];
     } catch (e) {
-      print('Errore ricerca: $e');
+      print(' Errore: $e');
       return [];
     }
   }
   
-  //  vegetarian recepies fron category
-  Future<List<Map<String, dynamic>>> getVegetarianMeals() async {
+  // Cerca ricette vegane
+  Future<List<Map<String, dynamic>>> getVeganMeals() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/filter.php?c=Vegetarian'),
+        Uri.parse('$baseUrl/recipes/preview?type=vegan'),
       );
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['meals'] != null) {
-          return List<Map<String, dynamic>>.from(data['meals']);
+        if (data['success'] == true && data['recipes'] != null) {
+          return List<Map<String, dynamic>>.from(data['recipes']);
         }
       }
+      print('Errore API: ${response.statusCode}');
       return [];
     } catch (e) {
       print('Errore: $e');
@@ -54,19 +51,62 @@ class MealApiService {
     }
   }
   
-  // details of full recipe
-  Future<Map<String, dynamic>?> getMealDetails(String mealId) async {
+  // Cerca entrambe (vegetariane + vegane)
+  Future<List<Map<String, dynamic>>> getBothMeals() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/lookup.php?i=$mealId'),
+        Uri.parse('$baseUrl/recipes/preview?type=both'),
       );
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['meals'] != null && data['meals'].isNotEmpty) {
-          return data['meals'][0];
+        if (data['success'] == true && data['recipes'] != null) {
+          return List<Map<String, dynamic>>.from(data['recipes']);
         }
       }
+      print('Errore API: ${response.statusCode}');
+      return [];
+    } catch (e) {
+      print('Errore: $e');
+      return [];
+    }
+  }
+  
+  // Cerca ricette per nome
+  Future<List<Map<String, dynamic>>> searchMeals(String query) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/recipes/search?q=$query'),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['recipes'] != null) {
+          return List<Map<String, dynamic>>.from(data['recipes']);
+        }
+      }
+      print('Errore API: ${response.statusCode}');
+      return [];
+    } catch (e) {
+      print('Errore: $e');
+      return [];
+    }
+  }
+  
+  // Dettagli ricetta
+  Future<Map<String, dynamic>?> getMealDetails(String mealId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/recipes/$mealId'),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['recipe'] != null) {
+          return data['recipe'];
+        }
+      }
+      print('Errore dettagli: ${response.statusCode}');
       return null;
     } catch (e) {
       print('Errore dettagli: $e');
@@ -74,60 +114,26 @@ class MealApiService {
     }
   }
   
-  // verifies if recipe is vegan (no eggs, milk, cheese etc)
+  // Verifica se ricetta è vegana
   bool isVegan(Map<String, dynamic> meal) {
-    List<String> veganOnly = ['egg', 'milk', 'cheese', 'butter', 'cream', 'yogurt', 'honey'];
-    
-    for (int i = 1; i <= 20; i++) {
-      String? ingredient = meal['strIngredient$i']?.toString().toLowerCase();
-      if (ingredient != null && ingredient.isNotEmpty) {
-        for (var nonVegan in veganOnly) {
-          if (ingredient.contains(nonVegan)) {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
+    return meal['isVegan'] == true;
   }
   
-  // verifies if recipe is vegetarian (no meat, no fish)
+  // Verifica se ricetta è vegetariana
   bool isVegetarian(Map<String, dynamic> meal) {
-    List<String> meatFish = [
-      'chicken', 'beef', 'pork', 'fish', 'meat', 
-      'salmon', 'tuna', 'turkey', 'lamb', 'bacon',
-      'prawn', 'shrimp',
-    ];
-    
-    for (int i = 1; i <= 20; i++) {
-      String? ingredient = meal['strIngredient$i']?.toString().toLowerCase();
-      if (ingredient != null && ingredient.isNotEmpty) {
-        for (var meat in meatFish) {
-          if (ingredient.contains(meat)) {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
+    return meal['isVegetarian'] == true;
   }
   
-  // Estract ingredients fron recipe
+  // Estrae ingredienti
   List<Map<String, String>> getIngredients(Map<String, dynamic> meal) {
-    List<Map<String, String>> ingredients = [];
-    
-    for (int i = 1; i <= 20; i++) {
-      String? ingredient = meal['strIngredient$i'];
-      String? measure = meal['strMeasure$i'];
-      
-      if (ingredient != null && ingredient.isNotEmpty) {
-        ingredients.add({
-          'name': ingredient,
-          'measure': measure ?? '',
-        });
-      }
+    if (meal['ingredients'] != null) {
+      return List<Map<String, String>>.from(
+        meal['ingredients'].map((ing) => {
+          'name': ing['name'].toString(),
+          'measure': ing['measure'].toString(),
+        })
+      );
     }
-    
-    return ingredients;
+    return [];
   }
 }
