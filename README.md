@@ -43,7 +43,7 @@ L'architettura adottata prevede tre componenti principali:
 └──────────────────┘
 ```
 
-La decisione di interporre un backend custom tra l'app e Forkify non è stata immediata. Inizialmente avevo considerato l'integrazione diretta, ma tre fattori hanno guidato la scelta attuale:
+La decisione di interporre un backend custom tra l'app e Forkify è stata consiferata per i seguenti tre fattori:
 
 **Problema 1: Traduzione**  
 Forkify restituisce ricette in inglese. Integrare un servizio di traduzione direttamente nell'app avrebbe significato:
@@ -51,22 +51,21 @@ Forkify restituisce ricette in inglese. Integrare un servizio di traduzione dire
 - Esporre API key nel codice client
 - Gestire la cache delle traduzioni su ogni dispositivo
 
-Centralizzando la traduzione nel backend, ottengo traduzioni consistenti e cachabili lato server.
+Centralizzando la traduzione nel backend, si ottengono traduzioni consistenti e cachabili lato server.
 
 **Problema 2: Filtraggio e Qualità Dati**  
-L'API Forkify non distingue esplicitamente tra vegetariano e vegano. Perciò è stata implementata una logica euristica basata sui titoli e sugli ingredienti. Spostare questa complessità nel backend mi ha permesso di iterare rapidamente sulla logica di filtro senza ridistribuire l'app e aggiungere raffinamenti progressivi (es. esclusione latte, uova per i vegani).
+L'API Forkify non distingue esplicitamente tra vegetariano e vegano, dunque è stata implementata una logica euristica basata sui titoli e sugli ingredienti. Spostare questa complessità ha permesso di iterare rapidamente sulla logica di filtro senza ridistribuire l'app e aggiungere raffinamenti progressivi (es. esclusione latte, uova per i vegani).
 
 **Problema 3: Rate Limiting e Costi**  
-Forkify è gratuita ma potrebbe introdurre limiti futuri. Avere un backend mi consente di migrare eventualmente a provider alternativi senza modificare l'account, nonché aggiungere più sorgeti dati in futuro per aumentare la disponibilità di ricette in VegMe.
+Forkify è gratuita ma potrebbe introdurre limiti futuri di conseguenza avere un backend separato consente di migrare eventualmente a provider alternativi senza modificare l'account, nonché aggiungere più sorgeti dati in futuro per aumentare la disponibilità di ricette in VegMe.
 
 ### 2.2 Backend: Scelte Tecnologiche
 
 **Framework: FastAPI**
 
-
 **Traduzione: deep-translator vs googletrans**
 
-La libreria `googletrans` presentava problemi di dipendenze (richiedeva `httpx==0.13.3`, incompatibile con la versione necessaria per altri componenti). Ho migrato a `deep-translator` che:
+La libreria `googletrans` presentava problemi di dipendenze (richiedeva `httpx==0.13.3`, incompatibile con la versione necessaria per altri componenti). E' stato migrato a `deep-translator` che:
 - Supporta httpx moderno
 - Offre la stessa API di Google Translate
 - Ha manutenzione attiva
