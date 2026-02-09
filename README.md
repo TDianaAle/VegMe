@@ -303,14 +303,7 @@ BLoC sarebbe stata una scelta prematura per questo progetto. Tuttavia, se dovess
 
 ### 4.1 Scaling Ingredienti
 
-Una funzionalità apparentemente semplice ma tecnicamente interessante è lo scaling degli ingredienti in base alle porzioni.
-
-**Problema:**
-Gli ingredienti arrivano come stringhe eterogenee:
-- "1.5 cucchiai di olio"
-- "1/2 cipolla"
-- "200 grammi di pasta"
-- "un pizzico di sale"
+La funzionalità di scaling degli ingredienti, pur apparentemente semplice, presenta alcune complessità tecniche significative a causa dell’eterogeneità delle unità di misura e dei formati testuali. Gli ingredienti possono essere espressi come numeri decimali, frazioni o termini descrittivi (“1.5 cucchiai di olio”, “1/2 cipolla”, “un pizzico di sale”), richiedendo un parsing accurato e la gestione corretta dei calcoli per adattarli al numero di porzioni desiderato. L’implementazione attuale consente di scalare automaticamente quantità numeriche sia in formato decimale sia frazionario, includendo la corretta interpretazione della virgola italiana come separatore decimale. Restano tuttavia alcune limitazioni note, come la mancata scalabilità di descrizioni qualitative o la conversione tra unità di misura diverse, che rappresentano possibili miglioramenti futuri.
 
 **Soluzione:**
 Implementazione di un parser basato su regex:
@@ -342,10 +335,6 @@ String _scaleQuantity(String measure) {
 }
 ```
 
-Casistiche gestite:
-- Decimali: `1.5` → `3.0` (per 2x porzioni)
-- Frazioni: `1/2` → `1` (per 2x porzioni)
-- Virgola italiana: `1,5` → `3`
 
 Limitazioni note:
 - Non scala ingredienti descrittivi ("un pizzico", "quanto basta")
@@ -464,19 +453,16 @@ Per ridurre la complessità della pianificazione settimanale dei pasti, è possi
 - Traduzione in più lingue (EN, ES, FR)
 
 ---
+## 7. Considerazioni su Sicurezza e Privacy
+### 7.1 Superficie di Attacco Attuale
 
-## 8. Considerazioni su Sicurezza e Privacy
+L’architettura del sistema è stata progettata tenendo in considerazione i principali vettori di attacco e la protezione dei dati sensibili sia lato backend sia lato client.
 
-### 8.1 Superficie di Attacco Attuale
+Backend:
+Il traffico tra client e server è interamente cifrato tramite HTTPS, garantendo la riservatezza e l’integrità dei dati in transito. Tutti gli input ricevuti sono sottoposti a validazione rigorosa mediante i modelli Pydantic, riducendo il rischio di injection o di dati malformati.
 
-**Backend:**
-- ✅ HTTPS enforced (Render)
-- ✅ Input validation (Pydantic type checking)
-
-
-**Client:**
-- ✅ mitigazione contro SQL injection con query parametrizzate SQLite
-- ✅ Dati sensibili solo locali
+Client:
+Le query verso il database locale SQLite utilizzano esclusivamente query parametrizzate, mitigando il rischio di SQL injection. Eventuali futuri miglioramenti potrebbero includere cifratura locale dei dati sensibili e meccanismi di gestione sicura delle credenziali nel caso di un implementazione di autenticazione.
 
 ---
 
