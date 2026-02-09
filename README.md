@@ -6,7 +6,7 @@ Programmazione di Sistemi Mobile
 
 ## 1. Scopo del Progetto
 
-VegMe nasce dall'esigenza pratica di semplificare la pianificazione dei pasti per chi segue diete vegetariane o vegane. Durante la fase di analisi preliminare, ho identificato due problematiche ricorrenti: la difficoltà nel variare i menu settimanali e la gestione inefficiente della lista della spesa.
+VegMe nasce dall'esigenza pratica di semplificare la pianificazione dei pasti per chi segue diete vegetariane o vegane. Durante la fase di analisi preliminare, sono state identificate due problematiche ricorrenti: la difficoltà nel variare i menu settimanali e la gestione inefficiente della lista della spesa.
 
 L'obiettivo principale è stato sviluppare un'applicazione mobile che permettesse di:
 
@@ -15,9 +15,7 @@ L'obiettivo principale è stato sviluppare un'applicazione mobile che permettess
 3. Generare automaticamente liste della spesa organizzate
 4. Adattare le quantità degli ingredienti in base al numero di commensali
 
-La scelta di supportare sia il regime vegetariano che vegano deriva dall'osservazione che molte famiglie includono membri con preferenze alimentari diverse. Ho quindi implementato una modalità "both" che permette di visualizzare ricette di entrambe le categorie.
-
-Un vincolo importante è stato garantire il funzionamento cross-platform (Android, iOS, web) mantenendo una singola codebase. Questo ha influenzato significativamente le scelte architetturali, come vedremo nelle sezioni successive.
+La scelta di supportare sia il regime vegetariano che vegano deriva dall'osservazione che molte famiglie includono membri con preferenze alimentari diverse. E' stato dunque implementato una modalità "both" che permette di visualizzare ricette di entrambe le categorie.
 
 ---
 
@@ -57,7 +55,7 @@ Centralizzando la traduzione nel backend, si ottengono traduzioni consistenti e 
 L'API Forkify non distingue esplicitamente tra vegetariano e vegano, dunque è stata implementata una logica euristica basata sui titoli e sugli ingredienti. Spostare questa complessità ha permesso di iterare rapidamente sulla logica di filtro senza ridistribuire l'app e aggiungere raffinamenti progressivi (es. esclusione latte, uova per i vegani).
 
 **Problema 3: Rate Limiting e Costi**  
-Forkify è gratuita ma potrebbe introdurre limiti futuri di conseguenza avere un backend separato consente di migrare eventualmente a provider alternativi senza modificare l'account, nonché aggiungere più sorgeti dati in futuro per aumentare la disponibilità di ricette in VegMe.
+Forkify è gratuita ma potrebbe introdurre limiti futuri, di conseguenza avere un backend separato consente di migrare eventualmente a provider alternativi senza modificare l'account, nonché aggiungere più sorgenti dati per aumentare la disponibilità di ricette in VegMe.
 
 ### 2.2 Backend: Scelte Tecnologiche
 
@@ -74,7 +72,7 @@ La libreria `googletrans` presentava problemi di dipendenze (richiedeva `httpx==
 
 La scelta di Render rispetto a Heroku o Railway è stata dettata dalla necessità di utilizzare una soluzione gratuita con auto deploy da GitHub.
 
-Il principale svantaggio è il cold start (~30 secondi) quando il servizio va in sleep. Ho mitigato questo problema con il pattern Preview/Details:
+Il principale svantaggio è il cold start (~30 secondi) quando il servizio va in sleep. Questo problema è stato risolto con il pattern Preview/Details:
 
 ### 2.3 Pattern Preview/Details: Soluzione al Timeout
 
@@ -214,14 +212,9 @@ Tutti gli screen interagiscono esclusivamente con `StorageManager`, che delega a
 - Testare le implementazioni separatamente
 - Aggiungere nuovi backend (es. Firebase) senza modificare gli screen
 
-Un'alternativa considerata era usare package come `hive` (funziona ovunque), ma ho preferito soluzioni native per:
-- Migliori performance su mobile (SQLite è ottimizzato)
-- Maggiore controllo su schema e query
-- Familiarità con strumenti standard della piattaforma
-
 ### 3.3 Sistema di Caching Multi-Livello
 
-Per minimizzare le chiamate di rete ho implementato caching su due livelli:
+Per minimizzare le chiamate di rete è stato implementato caching su due livelli:
 
 **L1 - In-Memory (Session Cache)**
 
@@ -275,13 +268,13 @@ Il flusso completo è:
 
 Questo approccio ha ridotto le chiamate API durante l'uso normale dell'applicazione.
 
-### 3.4 Gestione dello Stato: Perché Non BLoC
+### 3.4 Gestione dello State Management
 
-Flutter offre molteplici soluzioni per lo state management (Provider, BLoC, Riverpod, GetX). Ho deliberatamente scelto `StatefulWidget` con `setState()` per:
+Flutter offre molteplici soluzioni per lo state management (Provider, BLoC). Tuttavia per l'applicazione VegMe è stato scelto `StatefulWidget` con `setState()` per:
 
 **Semplicità:**
 - Curva di apprendimento minima
-- Debugging più immediato (meno layer di astrazione)
+- Debugging più immediato 
 - Codice più leggibile per revisori non esperti Flutter
 
 **Scope Limitato:**
@@ -294,15 +287,13 @@ Flutter offre molteplici soluzioni per lo state management (Provider, BLoC, Rive
 - Liste virtualizzate (ListView.builder)
 - Operazioni asincrone non bloccanti
 
-BLoC sarebbe stata una scelta prematura per questo progetto. Tuttavia, se dovessi aggiungere funzionalità come sincronizzazione real-time o collaborazione multi-utente, migrerei a un pattern più robusto di questo tipo.
-
 ---
 
 ## 4. Implementazione Funzionalità Chiave
 
 ### 4.1 Scaling Ingredienti
 
-La funzionalità di scaling degli ingredienti, pur apparentemente semplice, presenta alcune complessità tecniche significative a causa dell’eterogeneità delle unità di misura e dei formati testuali. Gli ingredienti possono essere espressi come numeri decimali, frazioni o termini descrittivi (“1.5 cucchiai di olio”, “1/2 cipolla”, “un pizzico di sale”), richiedendo un parsing accurato e la gestione corretta dei calcoli per adattarli al numero di porzioni desiderato. L’implementazione attuale consente di scalare automaticamente quantità numeriche sia in formato decimale sia frazionario, includendo la corretta interpretazione della virgola italiana come separatore decimale. Restano tuttavia alcune limitazioni note, come la mancata scalabilità di descrizioni qualitative o la conversione tra unità di misura diverse, che rappresentano possibili miglioramenti futuri.
+La funzionalità di scaling degli ingredienti, presenta alcune complessità tecniche a causa dell’eterogeneità delle unità di misura e dei formati testuali. Gli ingredienti possono essere espressi come numeri decimali, frazioni o termini descrittivi (“1.5 cucchiai di olio”, “1/2 cipolla”, “un pizzico di sale”), richiedendo un parsing accurato e la gestione corretta dei calcoli per adattarli al numero di porzioni desiderato. L’implementazione attuale consente di scalare automaticamente quantità numeriche sia in formato decimale sia frazionario, includendo la corretta interpretazione della virgola italiana come separatore decimale. Restano tuttavia alcune limitazioni note, come la mancata scalabilità di descrizioni qualitative o la conversione tra unità di misura diverse, che rappresentano possibili miglioramenti futuri.
 
 **Soluzione:**
 Implementazione di un parser basato su regex:
