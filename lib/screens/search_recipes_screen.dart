@@ -60,23 +60,62 @@ class _SearchRecipesScreenState extends State<SearchRecipesScreen> {
 
   Future<void> _searchRecipes(String query) async {
     if (query.isEmpty) {
-      _loadInitialRecipes();
+      _loadInitialRecipes(); // mostra tutte le ricette iniziali
       return;
     }
 
     setState(() => _isLoading = true);
 
-    final recipes = await _apiService.searchMeals(query);
+    List<Map<String, dynamic>> allRecipes = [];
 
-    setState(() {
-      _recipes = recipes;
-      _isLoading = false;
-      _hasSearched = true;
-    });
+    try {
+      // Carica le ricette in base al tipo selezionato
+      switch (widget.dietType) {
+        case 'vegan':
+          allRecipes = await _apiService.getVeganMeals();
+          break;
+        case 'vegetarian':
+          allRecipes = await _apiService.getVegetarianMeals();
+          break;
+        default:
+          allRecipes = await _apiService.getBothMeals();
+      }
 
-    
+      final q = query.toLowerCase();
+
+    // Filtra per nome e ingredienti
+    final filtered = allRecipes.where((recipe) {
+      final name = recipe['name']?.toString().toLowerCase() ?? '';
+
+      // Controlla se il nome contiene la query
+      if (name.contains(q)) return true;
+
+      // Controlla anche negli ingredienti
+      if (recipe['ingredients'] != null) {
+        for (var ing in recipe['ingredients']) {
+          final ingName = ing['name']?.toString().toLowerCase() ?? '';
+          if (ingName.contains(q)) return true;
+        }
+      }
+        return false;
+      }).toList();
+
+      setState(() {
+        _recipes = filtered;
+        _isLoading = false;
+        _hasSearched = true;
+      });
+
+      print('Ricerca query="$query", trovate ${filtered.length} ricette');
+    } catch (e) {
+      print('Errore ricerca: $e');
+      setState(() {
+        _recipes = [];
+        _isLoading = false;
+        _hasSearched = true;
+      });
+    }
   }
-
   
   @override
   Widget build(BuildContext context) {

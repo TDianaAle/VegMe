@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../local/database_helper.dart';
 
 class MealApiService {
   static const String baseUrl = 'https://italianrecipeapi.onrender.com/api';
@@ -73,24 +74,34 @@ class MealApiService {
   }
   
   // Cerca ricette per nome
-  Future<List<Map<String, dynamic>>> searchMeals(String query) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/recipes/search?q=$query'),
-      );
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true && data['recipes'] != null) {
-          return List<Map<String, dynamic>>.from(data['recipes']);
-        }
-      }
-      print('Errore API: ${response.statusCode}');
-      return [];
-    } catch (e) {
-      print('Errore: $e');
-      return [];
-    }
+  Future<List<Map<String, dynamic>>> searchMeals(String query, {String dietType = 'both'}) async {
+  List<Map<String, dynamic>> allRecipes;
+
+  // Carica tutte le ricette disponibili in base al dietType
+  switch (dietType) {
+    case 'vegan':
+      allRecipes = await getVeganMeals();
+      break;
+    case 'vegetarian':
+      allRecipes = await getVegetarianMeals();
+      break;
+    default:
+      allRecipes = await getBothMeals();
+  }
+
+  if (query.trim().isEmpty) {
+    return allRecipes; // se l'utente non digita nulla, mostra tutte
+  }
+
+  // Filtra le ricette lato client
+  final filtered = allRecipes.where((recipe) {
+    final name = recipe['name']?.toString().toLowerCase() ?? '';
+    return name.contains(query.toLowerCase());
+  }).toList();
+
+  print('Ricerca query="$query", dietType="$dietType", trovate ${filtered.length} ricette');
+
+  return filtered;
   }
   
   // Dettagli ricetta

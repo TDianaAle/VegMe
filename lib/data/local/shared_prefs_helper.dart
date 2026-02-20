@@ -8,7 +8,7 @@ class SharedPrefsHelper {
     final key = 'meals_day_$day';
     final jsonString = jsonEncode(meals);
     await prefs.setString(key, jsonString);
-    print('✅ Salvato giorno $day: $jsonString'); // Debug
+    print(' Salvato giorno $day: $jsonString'); // Debug
   }
 
   // Carica pasti per un giorno
@@ -17,7 +17,7 @@ class SharedPrefsHelper {
     final key = 'meals_day_$day';
     final jsonString = prefs.getString(key);
     
-    print('📖 Caricato giorno $day: $jsonString'); // Debug
+    print(' Caricato giorno $day: $jsonString'); // Debug
     
     if (jsonString == null) {
       return _createEmptyDay();
@@ -35,7 +35,7 @@ class SharedPrefsHelper {
       
       return result;
     } catch (e) {
-      print('❌ Errore caricamento: $e');
+      print(' Errore caricamento: $e');
       return _createEmptyDay();
     }
   }
